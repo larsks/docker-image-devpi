@@ -1,0 +1,49 @@
+name: Build and push image
+
+on:
+  push:
+    branches:
+      - master
+
+    tags:
+      - v*
+
+env:
+  IMAGE_NAME: devpi
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build image
+        run: |
+          docker build . --file Dockerfile --tag $IMAGE_NAME \
+            --label "github.run_id=${GITHUB_RUN_ID}" \
+            --label "github.commit_id=${GITHUB_SHA}"
+
+      - name: Log in to registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" |
+          docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push image
+        run: |
+          SHORTREF=${GITHUB_SHA::8}
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          fi
+
+          docker tag $IMAGE_NAME $IMAGE_ID:$SHORTREF
+          docker push $IMAGE_ID:$SHORTREF
+
+          if [[ $VERSION ]]; then
+            docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+            docker push $IMAGE_ID:$VERSION
+          fi

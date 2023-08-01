@@ -1,6 +1,9 @@
 FROM python:3.10
 
-RUN pip install devpi-server devpi-web
+ARG DEVPI_SERVER_VERSION=6.9.1
+ARG DEVPI_WEB_VERSION=4.2.1
+
+RUN pip install devpi-server==$DEVPI_SERVER_VERSION devpi-web==$DEVPI_WEB_VERSION
 VOLUME /data
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 ENTRYPOINT ["sh", "/docker-entrypoint.sh"]
